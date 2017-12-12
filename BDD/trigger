@@ -1,0 +1,76 @@
+create function before_delete() returns trigger as $before_delete$
+begin
+update station set place_dispo=place_dispo-1 where id=old.id_station;
+return old
+end;
+$before_delete$ language plpgsql;
+
+create trigger before_delete before delete on velo_dispo 
+for each row execute procedure before_delete();
+
+projet=# create function after_insert() returns trigger as $after_insert$
+projet$# begin
+projet$# update station set place_dispo=place_dispo+1 where id=new.id_station;
+projet$# return new;
+projet$# end;
+projet$# $after_insert$ language plpgsql;
+CREATE FUNCTION
+projet=# create trigger after_insert after insert on velo_dispo 
+projet-# for each row execute procedure after_insert();
+CREATE TRIGGER
+
+create function credit() returns trigger as $credit$
+declare
+res station.velib_plus%TYPE;
+begin
+select velib_plus into res from station where id=new.station_arr;
+if res then 
+update users set credit=credit+15 where id_user=new.id_users;
+end if;
+return new;
+end;
+$credit$ language plpgsql;
+create trigger credit after insert on trajet
+for each row execute procedure credit();
+
+create function all() returns trigger as $all$
+declare
+res%ROWTYPE;
+begin
+select place_dispo into res from station where id=new.station_dep;
+if res>=0 then 
+	delete from velo_dispo where id_velo=new.id_velo;
+
+end;
+$all$ language plpgsql;
+
+create function before_velol returns trigger as $before_velol$
+declare res%ROWTYPE;
+begin
+select * into res from velo_dispo where id=new.id;
+if found then 
+raise exception 'Vélo non loué';
+end if;
+return new;
+end;
+$before_velol$ language plpgsql;
+
+create trigger before_velol before insert on velou_loue
+for each row execute procedure before_velol();
+
+create function before_velod() returns trigger $before_velod$
+declare 
+res %ROWTYPE;
+begin
+select * into res from velo_loue where id=new.id;
+if found then 
+raise exception 'Vélo non disponible';
+end if;
+return new;
+end;
+$before_velod$ language plpgsql;
+
+create trigger before_velod before insert on velo_dispo
+for each row execute procedure before_velod();
+
+
